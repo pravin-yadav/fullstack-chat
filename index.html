@@ -1,0 +1,149 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+        <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+        <!--<link rel="stylesheet" href="css/main.css"> -->
+        <style type="text/css">
+        	#messages{
+        		height: 300px;
+                overflow-y: scroll;
+        	}
+        </style>
+    </head>
+    <body>
+      
+        
+    	<div class="container">
+    		<div class="row">
+    			<div class="col-md-12 col-sm-12">
+    				<h2 class="text-center">
+    					let's talk
+    					<button id="clear" class="btn btn-danger">Clear</button>
+    				</h2>
+                    <br>
+    				<div id="status"></div>
+                    <br>
+    				<div id="chat">
+    					<input type="text" id="username" class="form-control" placeholder="Enter your name">
+
+    						<br>
+    					<div class="card">
+    						<div id="messages" class="card-block">
+    							
+    						</div>
+    					</div>
+    					<br>
+    					<textarea id='textarea' class="form-control" placeholder="Enter message"></textarea>
+    				</div>
+    			</div>
+    		</div>
+    	</div>
+
+
+
+
+
+
+
+		<script src="http://code.jquery.com/jquery-1.12.4.min.js"></script>
+		<script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js'></script>
+		<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+
+		<script type="text/javascript">
+			(function(){
+				var element = function(id){
+					return document.getElementById(id);
+				}
+
+				var status = element('status');
+				var messages = element('messages');
+				var username = element('username');
+				var textarea = element('textarea');
+				var clearBtn = element('clear');
+
+				//set default status
+
+				var statusDefault = status.textContent;
+
+				var setStatus = function(s){
+					//set status
+
+					status.textContent = s;
+
+					if(s !== statusDefault){
+						var delay = setTimeout(function(){
+							setStatus(statusDefault);
+						},4000);
+					}
+				}
+
+
+				//connect to socket.io 
+				var socket = io.connect('http://127.0.0.1:4000'); 
+
+                socket.on('output', function(data){
+                   if(data.length){
+                    for(var x = 0 ; x < data.length ; x++){
+                        //build a message div
+
+                        var message =  document.createElement('div');
+                        message.setAttribute('class', 'chat-messages');
+                        message.textContent = data[x].name + ' : ' + data[x].message;
+                        messages.appendChild(message);
+                        messages.insertBefore(message, messages.firstChild)
+
+                    }
+                   }
+                })
+
+                    //get the status from the server
+
+                    socket.on('status', function(data){
+                        setStatus((typeof data === 'object') ? data.message : data );
+
+                        if(data.clear){
+                            textarea.value = '';
+                        }
+                    })
+
+                    //handle input 
+                    textarea.addEventListener('keydown', function(event){
+                        if(event.which === 13 && event.shiftKey == false){
+
+                            //emit server input
+                            socket.emit('input',{
+                                name : username.value,
+                                message : textarea.value
+                            });
+                            event.preventDefault();
+                        }
+
+
+                        // Handle Chat Clear
+                clearBtn.addEventListener('click', function(){
+                    username.value = '';
+                    socket.emit('clear');
+                });
+
+                // Clear Message
+                socket.on('cleared', function(){
+                    messages.textContent = '';
+                });
+                    })
+			})();
+		</script>
+    </body>
+</html>
